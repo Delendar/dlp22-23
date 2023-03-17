@@ -200,7 +200,7 @@ let rec free_vars tm = match tm with
   | TmLetIn (s, t1, t2) ->
       lunion (ldif (free_vars t2) [s]) (free_vars t1)
   | TmFix t -> 
-      freevars t
+      free_vars t
 ;;
 
 let rec fresh_name x l =

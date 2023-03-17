@@ -10,6 +10,7 @@
 lexer.ml
 parser.mli
 parser.ml
+top
 # ocamlbuild working directory
 _build/
 
