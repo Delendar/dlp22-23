@@ -370,7 +370,11 @@ let rec eval ctx tm =
     let tm' = eval1 ctx tm in
     eval ctx tm'
   with
-    NoRuleApplies -> tm
+    NoRuleApplies -> apply_ctx ctx tm
+;;
+
+let apply_ctx ctx tm =
+  List.fold_left (fun t x -> subst x (getvbinding ctx) t) tm (free_vars tm)
 ;;
 
 let execute ctx = function
