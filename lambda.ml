@@ -264,6 +264,10 @@ let rec subst x s tm = match tm with
       TmFix (subst x s t)
 ;;
 
+let apply_ctx ctx tm =
+  List.fold_left (fun t x -> subst x (getvbinding ctx x) t) tm (free_vars tm)
+;;
+
 let rec isnumericval tm = match tm with
     TmZero -> true
   | TmSucc t -> isnumericval t
@@ -371,10 +375,6 @@ let rec eval ctx tm =
     eval ctx tm'
   with
     NoRuleApplies -> apply_ctx ctx tm
-;;
-
-let apply_ctx ctx tm =
-  List.fold_left (fun t x -> subst x (getvbinding ctx) t) tm (free_vars tm)
 ;;
 
 let execute ctx = function
