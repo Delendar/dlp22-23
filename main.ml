@@ -25,10 +25,8 @@ let top_level_loop () =
     flush stdout;
     try     
       let input_string = read_input_aux () in
-      let tm = s token (from_string input_string) in
-      let tyTm = typeof ctx tm in
-      print_endline (string_of_term (eval tm) ^ " : " ^ string_of_ty tyTm);
-      loop ctx
+      let c = s token (from_string input_string) in
+      loop (execute ctx c)
     with
        Lexical_error ->
          print_endline "lexical error";
