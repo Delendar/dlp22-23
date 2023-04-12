@@ -21,6 +21,10 @@ rule token = parse
   | "in"        { IN }
   | "Bool"      { BOOL }
   | "Nat"       { NAT }
+  | "isnil"     { ISNIL }
+  | ","         { COMMA }
+  | "{"         { LKEY }
+  | "}"         { RKEY }
   | '('         { LPAREN }
   | ')'         { RPAREN }
   | '.'         { DOT }

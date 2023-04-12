@@ -5,6 +5,8 @@ type ty =
     TyBool
   | TyNat
   | TyArr of ty * ty
+  | TyTuple of ty * ty
+  | TyNil
 ;;
 
 type term =
@@ -20,6 +22,9 @@ type term =
   | TmApp of term * term
   | TmLetIn of string * term * term
   | TmFix of term
+  | TmTuple of term * term
+  | TmNil
+  (*| TmIsNil of term*)
 ;;
 
 type command =
@@ -71,6 +76,14 @@ let rec string_of_ty ty = match ty with
       "Nat"
   | TyArr (ty1, ty2) ->
       "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
+  | TyTuple(ty1, ty2) ->
+    let rec aux t = match t with
+      TyTuple (x, TyNil) -> string_of_ty x
+      | TyTuple (x, y) -> string_of_ty x ^ ", " ^ (aux y)
+      | _ -> "Invalid"
+    in ("{" ^ (aux (TyTuple(ty1,ty2))) ^ "}")
+  |TyNil -> 
+      "Null"
 ;;
 
 exception Type_error of string
@@ -148,6 +161,21 @@ let rec typeof ctx tm = match tm with
           if tyT11 = tyT12 then tyT12
           else raise (Type_error "result of body not compatible with domain")
       | _ -> raise (Type_error "arrow type expected"))
+
+    (* T-Tuple*)
+  | TmTuple (t1, t2) ->
+      TyTuple (typeof ctx t1, typeof ctx t2)
+  
+    (*T-Nil*)
+  | TmNil ->
+      TyNil
+
+    (*(*T-IsNil*)
+    | TmIsNil t1 ->
+      let t2 = typeof ctx t1 in (
+        match t2 with
+          T
+      )*)
 ;;
 
 
@@ -184,6 +212,16 @@ let rec string_of_term = function
       "let " ^ s ^ " = " ^ string_of_term t1 ^ " in " ^ string_of_term t2
   | TmFix t ->
       "(fix " ^ string_of_term t ^ " )"
+  | TmTuple (t1,t2) ->
+      let rec aux t = match t with
+          TmTuple (TmNil, TmNil) -> "{}"
+        | TmTuple (x, TmNil) -> string_of_term x
+        | TmTuple (x, y) -> string_of_term x ^ ", " ^ (aux y)
+        | x -> string_of_term x
+      in ("{" ^ (aux(TmTuple(t1,t2))) ^ "}") 
+  | TmNil ->
+      ""
+
 ;;
 
 let rec ldif l1 l2 = match l1 with
@@ -221,6 +259,10 @@ let rec free_vars tm = match tm with
       lunion (ldif (free_vars t2) [s]) (free_vars t1)
   | TmFix t -> 
       free_vars t
+  | TmTuple (t1, t2) ->
+      lunion (free_vars t1) (free_vars t2)
+  | TmNil -> 
+      []
 ;;
 
 let rec fresh_name x l =
@@ -262,6 +304,10 @@ let rec subst x s tm = match tm with
                 TmLetIn (z, subst x s t1, subst x s (subst y (TmVar z) t2))
   | TmFix t ->
       TmFix (subst x s t)
+  | TmTuple (t1, t2) ->
+      TmTuple (subst x s t1, subst x s t2)
+  | TmNil ->
+      TmNil
 ;;
 
 let apply_ctx ctx tm =
@@ -278,6 +324,7 @@ let rec isval tm = match tm with
     TmTrue  -> true
   | TmFalse -> true
   | TmAbs _ -> true
+  | TmTuple _ -> true
   | t when isnumericval t -> true
   | _ -> false
 ;;
@@ -361,6 +408,29 @@ let rec eval1 ctx tm = match tm with
   | TmFix t1 ->
       let t1' = eval1 ctx t1 in
       TmFix t1'
+
+   (* E-Tuple2*)
+   | TmTuple (t1, t2) when isval t1 ->
+    let t2' = eval1 ctx t2 in
+      TmTuple(t1, t2')
+
+    (* E-Tuple1*)
+  | TmTuple (t1, t2) ->
+      let t1' = eval1 ctx t1 in
+        TmTuple(t1', t2)
+
+  (*   (* E-IsNilNil*)
+  | TmIsNil (TmCons(TmNil,TmNil)) ->
+        TmTrue
+
+   (* E-IsNilNil*)
+  | TmIsNil t1 when isval t1 ->
+      TmFalse
+      
+    (* E-IsNil*)
+  | TmIsNil t1 ->
+      let t1' = eval1 ctx t1 in
+        TmIsNil t1' *)     
 
   | TmVar s ->
       getvbinding ctx s

@@ -17,7 +17,11 @@
 %token IN
 %token BOOL
 %token NAT
+%token ISNIL
 
+%token COMMA
+%token LKEY
+%token RKEY
 %token LPAREN
 %token RPAREN
 %token DOT
@@ -79,11 +83,30 @@ atomicTerm :
           | n -> TmSucc (f (n-1))
         in f $1 }
 
+tuples:
+    atomicTerm COMMA tuples
+        { TmTuple ($1, $3) }
+    | atomicTerm
+        { TmTuple ($1, TmNil) }
+    | 
+        { TmTuple (TmNil, TmNil) }
+
 ty :
     atomicTy
       { $1 }
   | atomicTy ARROW ty
       { TyArr ($1, $3) }
+  | LKEY tytuples RKEY
+      { $2 }
+
+tytuples:
+    atomicTy COMMA tytuples
+        { TyTuple ($1, $3) }
+    | atomicTy
+        { TyTuple ($1, TyNil) }
+    | 
+        { TyNil }
+
 
 atomicTy :
     LPAREN ty RPAREN  
