@@ -71,6 +71,8 @@ appTerm :
 atomicTerm :
     LPAREN term RPAREN
       { $2 }
+  | LKEY tuples RKEY
+      { $2 }
   | TRUE
       { TmTrue }
   | FALSE
