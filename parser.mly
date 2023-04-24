@@ -20,6 +20,8 @@
 %token ISNIL
 
 %token COMMA
+%token LBRACKET
+%token RBRACKET
 %token LKEY
 %token RKEY
 %token LPAREN
@@ -71,6 +73,10 @@ appTerm :
 atomicTerm :
     LPAREN term RPAREN
       { $2 }
+  | LBRACKET records RBRACKET
+      { $2 }
+  | LKEY tuples RKEY
+      { $2 }
   | TRUE
       { TmTrue }
   | FALSE
@@ -82,6 +88,12 @@ atomicTerm :
             0 -> TmZero
           | n -> TmSucc (f (n-1))
         in f $1 }
+
+records:
+    STRINGV EQ atomicTerm COMMA records
+      { TmRecord ( ($1, $3) , $5) }
+  | STRINGV EQ atomicTerm
+      { TmRecord ( ($1, $3) , TmNil)}
 
 tuples:
     atomicTerm COMMA tuples

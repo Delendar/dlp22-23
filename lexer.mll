@@ -23,6 +23,8 @@ rule token = parse
   | "Nat"       { NAT }
   | "isnil"     { ISNIL }
   | ","         { COMMA }
+  | "["         { LBRACKET }
+  | "]"         { RBRACKET }
   | "{"         { LKEY }
   | "}"         { RKEY }
   | '('         { LPAREN }
