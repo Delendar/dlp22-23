@@ -17,6 +17,7 @@
 %token IN
 %token BOOL
 %token NAT
+%token STR
 %token ISNIL
 
 %token COMMA
@@ -32,6 +33,7 @@
 
 %token <int> INTV
 %token <string> STRINGV
+%token <string> STRING
 
 %start s
 %type <Lambda.command> s
@@ -57,21 +59,21 @@ term :
       { TmLetIn ($2, TmFix (TmAbs ($2, $4, $6)), $8) }
 
 appTerm :
-    pathTerm
+    atomicTerm
       { $1 }
-  | SUCC pathTerm
+  | SUCC atomicTerm
       { TmSucc $2 }
-  | PRED pathTerm
+  | PRED atomicTerm
       { TmPred $2 }
-  | ISZERO pathTerm
+  | ISZERO atomicTerm
       { TmIsZero $2 }
-  | appTerm pathTerm
+  | appTerm atomicTerm
       { TmApp ($1, $2) }
 
-/*para las proyecciones*/
-pathTerm :
-    atomicTerm
-  |
+/*para las proyecciones, cambiar los atomic por path arriba*/
+/*pathTerm :
+    atomicTerm*/
+
 
 
 atomicTerm :
@@ -85,6 +87,8 @@ atomicTerm :
       { TmFalse }
   | STRINGV
       { TmVar $1 }
+  | STRING
+      { TmString (List.nth(String.split_on_char '\"' $1) 1) }
   | INTV
       { let rec f = function
             0 -> TmZero
@@ -123,4 +127,6 @@ atomicTy :
       { TyBool }
   | NAT
       { TyNat }
+  | STR
+      { TyString }
 

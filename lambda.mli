@@ -2,6 +2,7 @@
 type ty =
     TyBool
   | TyNat
+  | TyString
   | TyArr of ty * ty
   | TyTuple of ty * ty
   | TyNil
@@ -20,6 +21,7 @@ type term =
   | TmApp of term * term
   | TmLetIn of string * term * term
   | TmFix of term
+  | TmString of string
   | TmTuple of term * term
   | TmNil
 ;;

@@ -4,6 +4,7 @@
 type ty =
     TyBool
   | TyNat
+  | TyString
   | TyArr of ty * ty
   | TyTuple of ty * ty
   | TyNil
@@ -22,6 +23,7 @@ type term =
   | TmApp of term * term
   | TmLetIn of string * term * term
   | TmFix of term
+  | TmString of string
   | TmTuple of term * term
   | TmNil
   (*| TmIsNil of term*)
@@ -74,6 +76,8 @@ let rec string_of_ty ty = match ty with
       "Bool"
   | TyNat ->
       "Nat"
+  | TyString ->
+      "String"      
   | TyArr (ty1, ty2) ->
       "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
   | TyTuple(ty1, ty2) ->
@@ -162,6 +166,10 @@ let rec typeof ctx tm = match tm with
           else raise (Type_error "result of body not compatible with domain")
       | _ -> raise (Type_error "arrow type expected"))
 
+    (* T-String *)
+  | TmString s ->
+      TyString
+
     (* T-Tuple*)
   | TmTuple (t1, t2) ->
       TyTuple (typeof ctx t1, typeof ctx t2)
@@ -212,6 +220,8 @@ let rec string_of_term = function
       "let " ^ s ^ " = " ^ string_of_term t1 ^ " in " ^ string_of_term t2
   | TmFix t ->
       "(fix " ^ string_of_term t ^ " )"
+  | TmString s ->
+      "\"" ^ s ^ "\""
   | TmTuple (t1,t2) ->
       let rec aux t = match t with
           TmTuple (TmNil, TmNil) -> "{}"
@@ -259,6 +269,8 @@ let rec free_vars tm = match tm with
       lunion (ldif (free_vars t2) [s]) (free_vars t1)
   | TmFix t -> 
       free_vars t
+  | TmString s -> 
+      []
   | TmTuple (t1, t2) ->
       lunion (free_vars t1) (free_vars t2)
   | TmNil -> 
@@ -304,6 +316,8 @@ let rec subst x s tm = match tm with
                 TmLetIn (z, subst x s t1, subst x s (subst y (TmVar z) t2))
   | TmFix t ->
       TmFix (subst x s t)
+  | TmString s ->
+      TmString s    
   | TmTuple (t1, t2) ->
       TmTuple (subst x s t1, subst x s t2)
   | TmNil ->
@@ -324,6 +338,7 @@ let rec isval tm = match tm with
     TmTrue  -> true
   | TmFalse -> true
   | TmAbs _ -> true
+  | TmString s -> true  
   | TmTuple _ -> true
   | t when isnumericval t -> true
   | _ -> false
