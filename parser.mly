@@ -29,6 +29,7 @@
 %token EQ
 %token COLON
 %token ARROW
+%token CONCAT
 %token EOF
 
 %token <int> INTV
@@ -67,6 +68,10 @@ appTerm :
       { TmPred $2 }
   | ISZERO atomicTerm
       { TmIsZero $2 }
+  | LPAREN CONCAT RPAREN atomicTerm atomicTerm
+      { TmConcat ($4, $5) }
+  | atomicTerm CONCAT atomicTerm
+      { TmConcat ($1, $3) }
   | appTerm atomicTerm
       { TmApp ($1, $2) }
 

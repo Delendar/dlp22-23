@@ -24,6 +24,7 @@ type term =
   | TmLetIn of string * term * term
   | TmFix of term
   | TmString of string
+  | TmConcat of term * term
   | TmTuple of term * term
   | TmNil
   (*| TmIsNil of term*)
@@ -170,6 +171,15 @@ let rec typeof ctx tm = match tm with
   | TmString s ->
       TyString
 
+    (* T-Concat *)
+  | TmConcat (t1, t2) ->
+      let tyt1 = typeof ctx t1 in
+      let tyt2 = typeof ctx t2 in
+      if tyt1 = TyString then
+        if tyt2 = TyString then TyString
+        else raise (Type_error "second argument is not an string")
+      else raise (Type_error "first argument is not an string")
+
     (* T-Tuple*)
   | TmTuple (t1, t2) ->
       TyTuple (typeof ctx t1, typeof ctx t2)
@@ -222,6 +232,8 @@ let rec string_of_term = function
       "(fix " ^ string_of_term t ^ " )"
   | TmString s ->
       "\"" ^ s ^ "\""
+  | TmConcat (t1, t2) ->
+      "(++) " ^ string_of_term t1 ^ " " ^ string_of_term t2
   | TmTuple (t1,t2) ->
       let rec aux t = match t with
           TmTuple (TmNil, TmNil) -> "{}"
@@ -271,6 +283,8 @@ let rec free_vars tm = match tm with
       free_vars t
   | TmString s -> 
       []
+  | TmConcat (t1, t2) ->
+      lunion (free_vars t1) (free_vars t2)
   | TmTuple (t1, t2) ->
       lunion (free_vars t1) (free_vars t2)
   | TmNil -> 
@@ -318,6 +332,8 @@ let rec subst x s tm = match tm with
       TmFix (subst x s t)
   | TmString s ->
       TmString s    
+  | TmConcat (t1, t2) ->
+      TmConcat (subst x s t1, subst x s t2)
   | TmTuple (t1, t2) ->
       TmTuple (subst x s t1, subst x s t2)
   | TmNil ->
@@ -423,6 +439,20 @@ let rec eval1 ctx tm = match tm with
   | TmFix t1 ->
       let t1' = eval1 ctx t1 in
       TmFix t1'
+
+    (* E-ConcatV *)
+  | TmConcat (TmString s1, TmString s2) ->
+      TmString (s1 ^ s2)
+
+    (* E-Concat2 *)
+  | TmConcat (TmString s1, t2) ->
+      let t2' = eval1 ctx t2 in
+      TmConcat (TmString s1, t2')
+
+    (* E-Concat1 *)
+  | TmConcat (t1, TmString s2) ->
+      let t1' = eval1 ctx t1 in
+      TmConcat (t1', TmString s2)
 
    (* E-Tuple2*)
    | TmTuple (t1, t2) when isval t1 ->

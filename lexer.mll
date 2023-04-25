@@ -23,7 +23,8 @@ rule token = parse
   | "Nat"       { NAT }
   | "isnil"     { ISNIL }
   | "Str"       { STR }
-  | "String"       { STR }
+  | "String"    { STR }
+  | "++"        { CONCAT }
   | ","         { COMMA }
   | "{"         { LKEY }
   | "}"         { RKEY }
