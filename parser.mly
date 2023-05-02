@@ -126,15 +126,6 @@ ty :
   | LKEY tytuples RKEY
       { $2 }
 
-tytuples:
-    atomicTy COMMA tytuples
-        { TyTuple ($1, $3) }
-    | atomicTy
-        { TyTuple ($1, TyNil) }
-    | 
-        { TyNil }
-
-
 atomicTy :
     LPAREN ty RPAREN  
       { $2 } 
@@ -144,4 +135,22 @@ atomicTy :
       { TyNat }
   | STR
       { TyString }
+  | LKEY tyTuples RKEY  
+      { $2 }
+  | LKEY tyRecord RKEY  
+      { $2 }
 
+
+tyTuples:
+    atomicTy COMMA tytuples
+        { TyTuple ($1, $3) }
+    | atomicTy
+        { TyTuple ($1, TyNil) }
+    | 
+        { TyNil }
+
+tyRecord:
+    STRINGV COLON atomicTy COMMA tyrecord
+      { TyRecord (($1,$3), $5) }
+  | STRINGV COLON atomicTy
+      { TyRecord (($1,$3), TyNil) }
