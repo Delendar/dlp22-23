@@ -5,7 +5,7 @@ type ty =
     TyBool
   | TyNat
   | TyArr of ty * ty
-  | TmRecord of (string * ty) * ty
+  | TyRecord of (string * ty) * ty
   | TyTuple of ty * ty
   | TyNil
 ;;
@@ -79,10 +79,12 @@ let rec string_of_ty ty = match ty with
       "Nat"
   | TyArr (ty1, ty2) ->
       "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
-  | TmRecord ((tag, ty1), ty2) ->
+  | TyRecord ((tag, ty1), ty2) ->
     let rec recordTyping record = match record with
-      | TyRecord ((tag, ty), TyNil) -> tag ^ ":" ^ string_of_ty ty
-      | TyRecord ((tag, ty), record) -> tag ^ ":" ^ string_of_ty ty ^ ", " (recordTyping record)
+      | TyRecord ((tag, ty), TyNil) -> 
+          tag ^ ":" ^ string_of_ty ty
+      | TyRecord ((tag, ty), record) -> 
+          tag ^ ":" ^ string_of_ty ty ^ (recordTyping record)
       | _ -> "Invalid record constructor."
     in ("{" ^ recordTyping (TyRecord((tag, ty1), ty2)) ^ "}")
   | TyTuple(ty1, ty2) ->
@@ -174,13 +176,13 @@ let rec typeof ctx tm = match tm with
   | TmRecord ((tag, t1), t2) ->
       let rec recordTypeof tags = function
         | TmRecord ((tag, element), TmNil) -> 
-            if (List.mem tag tags) then raise Invalid_argument "Record - Unique key duplicated in record"
+            if (List.mem tag tags) then raise (Invalid_argument "Record - Unique key duplicated in record")
             else TyRecord ((tag, typeof ctx element), TyNil)
         | TmRecord ((tag, element), record) ->
-            if (List.mem tag tags) then raise Invalid_argument "Record - Unique key duplicated in record"
+            if (List.mem tag tags) then raise (Invalid_argument "Record - Unique key duplicated in record")
             else TyRecord ((tag, typeof ctx element), (recordTypeof (tag::tags) record))
-        | _ -> raise Type_error "invalid record syntax"
-      in recordTypeof [] TmRecord ((tag, t1), t2)
+        | _ -> raise (Type_error "invalid record syntax")
+      in recordTypeof [] (TmRecord ((tag, t1), t2))
 
   | TmProj (t1, TmVar var) ->
       let projTy = typeof ctx t1 in
@@ -188,12 +190,13 @@ let rec typeof ctx tm = match tm with
         TyRecord (term1,term2) ->
           let rec recProjTypeOf = function
             | TyRecord ((tag, elem), TyNil) -> 
-              if tag = var then elem else TyNil
+                if tag = var then elem else TyNil
             | TyRecord ((tag, elem), record) ->
-              if tag = var then projectionTypeOf record
-            | _ -> TyNil
-            in recProjTypeOf TyRecord (term1,term2))
-        | _ -> rause Type_error "head argument of projection not of type record"
+                if tag = var then elem else recProjTypeOf record
+            | _ -> 
+                TyNil
+          in recProjTypeOf (TyRecord (term1,term2)))
+        | _ -> raise (Type_error "head argument of projection not of type record")
 
   | TmProj (t1, t2) ->
         let ty1 = typeof ctx t1 in
@@ -207,13 +210,14 @@ let rec typeof ctx tm = match tm with
                   | TyTuple (elem1, elem2), TmSucc(num) -> 
                       tupProjTypeOf elem2 num
                   | _ -> TyNil
-              in tupProjTypeOf TyTuple(term1, term2) t2
+              in tupProjTypeOf (TyTuple(term1, term2)) t2
           | TyRecord (term1, term2), _ -> 
-              raise Type_error "second argument of projection not a tag"
+              raise (Type_error "second argument of projection not a tag")
           | _, TyNat -> 
-              raise Type_error "head argument of projection not of type tuple"
+              raise (Type_error "head argument of projection not of type tuple")
           | _ -> 
-              raise Type_error "second argument of projection not of type Nat")
+              raise (Type_error "second argument of projection not of type Nat")
+        )
 
     (* T-Tuple*)
   | TmTuple (t1, t2) ->
@@ -271,10 +275,10 @@ let rec string_of_term = function
         | TmRecord ((tag, element), TmNil) -> 
             tag ^ "=" ^ string_of_term element
         | TmRecord ((tag, element), record) -> 
-            tag ^ "=" ^ string_of_term element ^ ", " (recordSoF record)
+            tag ^ "=" ^ string_of_term element ^ ", " ^ (recordSoF record)
         | element ->
             string_of_term element
-      in ("{" ^ recordSoF TmRecord((tag, t1), t2) "}")
+      in ("{" ^ (recordSoF (TmRecord((tag, t1), t2))) ^ "}")
   | TmTuple (t1,t2) ->
       let rec aux t = match t with
           TmTuple (TmNil, TmNil) -> "{}"
@@ -374,7 +378,7 @@ let rec subst x s tm = match tm with
   | TmFix t ->
       TmFix (subst x s t)
   | TmRecord ((tag, t1), t2) ->
-      TmRecord ((tag, subst x s t1) subs x s t2)
+      TmRecord ((tag, subst x s t1), subst x s t2)
   | TmTuple (t1, t2) ->
       TmTuple (subst x s t1, subst x s t2)
   | TmProj (t1, t2) ->

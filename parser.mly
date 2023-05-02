@@ -72,8 +72,9 @@ appTerm :
 
 pathTerm :
     atomicTerm
+        { $1 }
   | atomicTerm DOT atomicTerm
-    { TmProj ($1, $3) }
+        { TmProj ($1, $3) }
 
 atomicTerm :
     LPAREN term RPAREN
