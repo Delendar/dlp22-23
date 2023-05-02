@@ -25,6 +25,7 @@ type term =
   | TmFix of term
   | TmRecord of (string * term) * term
   | TmTuple of term * term
+  | TmProj of term * term
   | TmNil
   (*| TmIsNil of term*)
 ;;
@@ -181,6 +182,39 @@ let rec typeof ctx tm = match tm with
         | _ -> raise Type_error "invalid record syntax"
       in recordTypeof [] TmRecord ((tag, t1), t2)
 
+  | TmProj (t1, TmVar var) ->
+      let projTy = typeof ctx t1 in
+      (match projTy with
+        TyRecord (term1,term2) ->
+          let rec recProjTypeOf = function
+            | TyRecord ((tag, elem), TyNil) -> 
+              if tag = var then elem else TyNil
+            | TyRecord ((tag, elem), record) ->
+              if tag = var then projectionTypeOf record
+            | _ -> TyNil
+            in recProjTypeOf TyRecord (term1,term2))
+        | _ -> rause Type_error "head argument of projection not of type record"
+
+  | TmProj (t1, t2) ->
+        let ty1 = typeof ctx t1 in
+        let ty2 = typeof ctx t2 in
+        (match ty1, ty2 with
+          | TyTuple (term1, term2), TyNat ->
+              let rec tupProjTypeOf ty term = 
+                match ty, term with
+                  | TyTuple (elem, _), TmZero -> 
+                      elem
+                  | TyTuple (elem1, elem2), TmSucc(num) -> 
+                      tupProjTypeOf elem2 num
+                  | _ -> TyNil
+              in tupProjTypeOf TyTuple(term1, term2) t2
+          | TyRecord (term1, term2), _ -> 
+              raise Type_error "second argument of projection not a tag"
+          | _, TyNat -> 
+              raise Type_error "head argument of projection not of type tuple"
+          | _ -> 
+              raise Type_error "second argument of projection not of type Nat")
+
     (* T-Tuple*)
   | TmTuple (t1, t2) ->
       TyTuple (typeof ctx t1, typeof ctx t2)
@@ -248,6 +282,8 @@ let rec string_of_term = function
         | TmTuple (x, y) -> string_of_term x ^ ", " ^ (aux y)
         | x -> string_of_term x
       in ("{" ^ (aux(TmTuple(t1,t2))) ^ "}") 
+  | TmProj (t1, t2) ->
+    string_of_term t1 ^ "." ^ string_of_term t2
   | TmNil ->
       ""
 
@@ -291,6 +327,8 @@ let rec free_vars tm = match tm with
   | TmRecord ((tag, t1), t2) ->
       ldif (lunion (free_vars t1) (free_vars t2)) [tag]
   | TmTuple (t1, t2) ->
+      lunion (free_vars t1) (free_vars t2)
+  | TmProj (t1, t2) ->
       lunion (free_vars t1) (free_vars t2)
   | TmNil -> 
       []
@@ -339,6 +377,8 @@ let rec subst x s tm = match tm with
       TmRecord ((tag, subst x s t1) subs x s t2)
   | TmTuple (t1, t2) ->
       TmTuple (subst x s t1, subst x s t2)
+  | TmProj (t1, t2) ->
+      TmProj (subst x s t1, subst x s t2)
   | TmNil ->
       TmNil
 ;;
@@ -459,6 +499,34 @@ let rec eval1 ctx tm = match tm with
   | TmTuple (t1, t2) ->
       let t1' = eval1 ctx t1 in
         TmTuple(t1', t2)
+
+    (* E-Proj2*)
+  | TmProj (TmTuple (t11, t12), TmZero) ->
+      t11
+
+    (* E-ProjErr*)
+  | TmProj (TmTuple (t11, TmNil), t2) ->
+      raise (Invalid_argument "index out of bounds")
+
+    (* E-Proj1*)
+  | TmProj (TmTuple (t11, t12), t2) ->
+      let t2' = eval1 ctx (TmPred t2) in
+      TmProj(t12, t2')
+
+    (* E-RecProj2*)
+  | TmProj (TmRecord ((tag1,t1), TmNil), (TmVar projTag)) ->
+      if tag1 = projTag then t1
+      else raise (Invalid_argument "key not found")
+
+    (* E-RecProj1*)
+  | TmProj (TmRecord ((tag1,t1),t2), (TmVar projTag)) ->
+      if tag1 = projTag then t1
+      else TmProj (t2,(TmVar projTag))
+    
+    (* E-Proj*)
+  | TmProj (t1, t2) ->
+      let t1' = eval1 ctx t1 in
+      TmProj (t1', t2)
 
   (*   (* E-IsNilNil*)
   | TmIsNil (TmCons(TmNil,TmNil)) ->

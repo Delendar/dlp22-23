@@ -23,6 +23,7 @@ type term =
   | TmFix of term
   | TmRecord of (string * term) * term
   | TmTuple of term * term
+  | TmProj of term * term
   | TmNil
 ;;
 
