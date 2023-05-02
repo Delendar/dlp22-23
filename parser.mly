@@ -123,8 +123,6 @@ ty :
       { $1 }
   | atomicTy ARROW ty
       { TyArr ($1, $3) }
-  | LKEY tytuples RKEY
-      { $2 }
 
 atomicTy :
     LPAREN ty RPAREN  
@@ -142,7 +140,7 @@ atomicTy :
 
 
 tyTuples:
-    atomicTy COMMA tytuples
+    atomicTy COMMA tyTuples
         { TyTuple ($1, $3) }
     | atomicTy
         { TyTuple ($1, TyNil) }
@@ -150,7 +148,7 @@ tyTuples:
         { TyNil }
 
 tyRecord:
-    STRINGV COLON atomicTy COMMA tyrecord
+    STRINGV COLON atomicTy COMMA tyRecord
       { TyRecord (($1,$3), $5) }
   | STRINGV COLON atomicTy
       { TyRecord (($1,$3), TyNil) }
