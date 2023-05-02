@@ -4,6 +4,7 @@
 type ty =
     TyBool
   | TyNat
+  | TyString
   | TyArr of ty * ty
   | TyRecord of (string * ty) * ty
   | TyTuple of ty * ty
@@ -24,6 +25,8 @@ type term =
   | TmLetIn of string * term * term
   | TmFix of term
   | TmRecord of (string * term) * term
+  | TmString of string
+  | TmConcat of term * term
   | TmTuple of term * term
   | TmProj of term * term
   | TmNil
@@ -77,6 +80,8 @@ let rec string_of_ty ty = match ty with
       "Bool"
   | TyNat ->
       "Nat"
+  | TyString ->
+      "String"      
   | TyArr (ty1, ty2) ->
       "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
   | TyRecord ((tag, ty1), ty2) ->
@@ -218,6 +223,18 @@ let rec typeof ctx tm = match tm with
           | _ -> 
               raise (Type_error "second argument of projection not of type Nat")
         )
+    (* T-String *)
+  | TmString s ->
+      TyString
+
+    (* T-Concat *)
+  | TmConcat (t1, t2) ->
+      let tyt1 = typeof ctx t1 in
+      let tyt2 = typeof ctx t2 in
+      if tyt1 = TyString then
+        if tyt2 = TyString then TyString
+        else raise (Type_error "second argument is not an string")
+      else raise (Type_error "first argument is not an string")
 
     (* T-Tuple*)
   | TmTuple (t1, t2) ->
@@ -279,6 +296,10 @@ let rec string_of_term = function
         | element ->
             string_of_term element
       in ("{" ^ (recordSoF (TmRecord((tag, t1), t2))) ^ "}")
+  | TmString s ->
+      "\"" ^ s ^ "\""
+  | TmConcat (t1, t2) ->
+      "(++) " ^ string_of_term t1 ^ " " ^ string_of_term t2
   | TmTuple (t1,t2) ->
       let rec aux t = match t with
           TmTuple (TmNil, TmNil) -> "{}"
@@ -330,6 +351,10 @@ let rec free_vars tm = match tm with
       free_vars t
   | TmRecord ((tag, t1), t2) ->
       ldif (lunion (free_vars t1) (free_vars t2)) [tag]
+  | TmString s -> 
+      []
+  | TmConcat (t1, t2) ->
+      lunion (free_vars t1) (free_vars t2)
   | TmTuple (t1, t2) ->
       lunion (free_vars t1) (free_vars t2)
   | TmProj (t1, t2) ->
@@ -379,6 +404,10 @@ let rec subst x s tm = match tm with
       TmFix (subst x s t)
   | TmRecord ((tag, t1), t2) ->
       TmRecord ((tag, subst x s t1), subst x s t2)
+  | TmString s ->
+      TmString s    
+  | TmConcat (t1, t2) ->
+      TmConcat (subst x s t1, subst x s t2)
   | TmTuple (t1, t2) ->
       TmTuple (subst x s t1, subst x s t2)
   | TmProj (t1, t2) ->
@@ -402,6 +431,7 @@ let rec isval tm = match tm with
   | TmFalse -> true
   | TmAbs _ -> true
   | TmRecord _ -> true
+  | TmString s -> true  
   | TmTuple _ -> true
   | t when isnumericval t -> true
   | _ -> false
@@ -493,6 +523,19 @@ let rec eval1 ctx tm = match tm with
   | TmRecord((tag,t1), t2) ->
       let t1' = eval1 ctx t1 in
       TmRecord((tag, t1'), t2)
+    (* E-ConcatV *)
+  | TmConcat (TmString s1, TmString s2) ->
+      TmString (s1 ^ s2)
+
+    (* E-Concat2 *)
+  | TmConcat (TmString s1, t2) ->
+      let t2' = eval1 ctx t2 in
+      TmConcat (TmString s1, t2')
+
+    (* E-Concat1 *)
+  | TmConcat (t1, TmString s2) ->
+      let t1' = eval1 ctx t1 in
+      TmConcat (t1', TmString s2)
 
    (* E-Tuple2*)
    | TmTuple (t1, t2) when isval t1 ->

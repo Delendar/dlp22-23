@@ -17,6 +17,7 @@
 %token IN
 %token BOOL
 %token NAT
+%token STR
 %token ISNIL
 
 %token COMMA
@@ -30,10 +31,12 @@
 %token EQ
 %token COLON
 %token ARROW
+%token CONCAT
 %token EOF
 
 %token <int> INTV
 %token <string> STRINGV
+%token <string> STRING
 
 %start s
 %type <Lambda.command> s
@@ -67,6 +70,10 @@ appTerm :
       { TmPred $2 }
   | ISZERO pathTerm
       { TmIsZero $2 }
+  | LPAREN CONCAT RPAREN pathTerm pathTerm
+      { TmConcat ($4, $5) }
+  | pathTerm CONCAT pathTerm
+      { TmConcat ($1, $3) }
   | appTerm pathTerm
       { TmApp ($1, $2) }
 
@@ -89,6 +96,8 @@ atomicTerm :
       { TmFalse }
   | STRINGV
       { TmVar $1 }
+  | STRING
+      { TmString (List.nth(String.split_on_char '\"' $1) 1) }
   | INTV
       { let rec f = function
             0 -> TmZero
@@ -133,4 +142,6 @@ atomicTy :
       { TyBool }
   | NAT
       { TyNat }
+  | STR
+      { TyString }
 
