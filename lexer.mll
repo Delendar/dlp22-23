@@ -37,6 +37,7 @@ rule token = parse
   | '.'         { DOT }
   | '='         { EQ }
   | ':'         { COLON }
+  | ';'         { SEMICOLON }
   | "->"        { ARROW }
   | "\""[^'"']*"\"" { STRING (Lexing.lexeme lexbuf)}
   | ['0'-'9']+  { INTV (int_of_string (Lexing.lexeme lexbuf)) }

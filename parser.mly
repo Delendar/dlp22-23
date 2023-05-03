@@ -32,6 +32,7 @@
 %token DOT
 %token EQ
 %token COLON
+%token SEMICOLON
 %token ARROW
 %token CONCAT
 %token EOF
@@ -84,6 +85,8 @@ pathTerm :
         { $1 }
   | atomicTerm DOT atomicTerm
         { TmProj ($1, $3) }
+  | atomicTerm SEMICOLON atomicTerm
+        { TmApp (TmAbs ("x", TyUnit, $3), $1) }
 
 atomicTerm :
     LPAREN term RPAREN
