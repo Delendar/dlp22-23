@@ -89,7 +89,7 @@ let rec string_of_ty ty = match ty with
       | TyRecord ((tag, ty), TyNil) -> 
           tag ^ ":" ^ string_of_ty ty
       | TyRecord ((tag, ty), record) -> 
-          tag ^ ":" ^ string_of_ty ty ^ (recordTyping record)
+          tag ^ ":" ^ string_of_ty ty ^ ", " ^ (recordTyping record)
       | _ -> "Invalid record constructor."
     in ("{" ^ recordTyping (TyRecord((tag, ty1), ty2)) ^ "}")
   | TyTuple(ty1, ty2) ->
@@ -200,8 +200,8 @@ let rec typeof ctx tm = match tm with
                 if tag = var then elem else recProjTypeOf record
             | _ -> 
                 TyNil
-          in recProjTypeOf (TyRecord (term1,term2)))
-        | _ -> raise (Type_error "head argument of projection not of type record")
+          in recProjTypeOf (TyRecord (term1,term2))
+        | _ -> raise (Type_error "head argument of projection not of type record"))
 
   | TmProj (t1, t2) ->
         let ty1 = typeof ctx t1 in
