@@ -19,6 +19,8 @@
 %token NAT
 %token STR
 %token ISNIL
+%token UNIT
+%token TYUNIT
 
 %token COMMA
 %token LBRACKET
@@ -103,6 +105,8 @@ atomicTerm :
             0 -> TmZero
           | n -> TmSucc (f (n-1))
         in f $1 }
+  | UNIT
+      { TmUnit }
 
 records:
     STRINGV EQ atomicTerm COMMA records
@@ -137,6 +141,8 @@ atomicTy :
       { $2 }
   | LKEY tyRecord RKEY  
       { $2 }
+  | TYUNIT
+      { TyUnit }
 
 
 tyTuples:

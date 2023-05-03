@@ -7,6 +7,7 @@ type ty =
   | TyRecord of (string * ty) * ty
   | TyTuple of ty * ty
   | TyNil
+  | TyUnit
 ;;
 
 type term =
@@ -28,6 +29,7 @@ type term =
   | TmTuple of term * term
   | TmProj of term * term
   | TmNil
+  | TmUnit
 ;;
 
 type command =

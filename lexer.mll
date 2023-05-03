@@ -24,6 +24,8 @@ rule token = parse
   | "isnil"     { ISNIL }
   | "Str"       { STR }
   | "String"    { STR }
+  | "unit"      { UNIT }
+  | "Unit"      { TYUNIT }
   | "++"        { CONCAT }
   | ","         { COMMA }
   | "["         { LBRACKET }

@@ -9,6 +9,7 @@ type ty =
   | TyRecord of (string * ty) * ty
   | TyTuple of ty * ty
   | TyNil
+  | TyUnit
 ;;
 
 type term =
@@ -30,6 +31,7 @@ type term =
   | TmTuple of term * term
   | TmProj of term * term
   | TmNil
+  | TmUnit
   (*| TmIsNil of term*)
 ;;
 
@@ -98,8 +100,10 @@ let rec string_of_ty ty = match ty with
       | TyTuple (x, y) -> string_of_ty x ^ ", " ^ (aux y)
       | _ -> "Invalid"
     in ("{" ^ (aux (TyTuple(ty1,ty2))) ^ "}")
-  |TyNil -> 
+  | TyNil -> 
       "Null"
+  | TyUnit ->
+      "Unit"
 ;;
 
 exception Type_error of string
@@ -243,6 +247,9 @@ let rec typeof ctx tm = match tm with
     (*T-Nil*)
   | TmNil ->
       TyNil
+  
+  | TmUnit ->
+      TyUnit
 
     (*(*T-IsNil*)
     | TmIsNil t1 ->
@@ -311,6 +318,8 @@ let rec string_of_term = function
     string_of_term t1 ^ "." ^ string_of_term t2
   | TmNil ->
       ""
+  | TmUnit ->
+      "unit"
 
 ;;
 
@@ -360,6 +369,8 @@ let rec free_vars tm = match tm with
   | TmProj (t1, t2) ->
       lunion (free_vars t1) (free_vars t2)
   | TmNil -> 
+      []
+  | TmUnit ->
       []
 ;;
 
@@ -414,6 +425,8 @@ let rec subst x s tm = match tm with
       TmProj (subst x s t1, subst x s t2)
   | TmNil ->
       TmNil
+  | TmUnit ->
+      TmUnit
 ;;
 
 let apply_ctx ctx tm =
@@ -434,6 +447,7 @@ let rec isval tm = match tm with
   | TmString s -> true  
   | TmTuple _ -> true
   | t when isnumericval t -> true
+  | TmUnit -> true
   | _ -> false
 ;;
 
