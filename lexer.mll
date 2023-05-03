@@ -25,6 +25,7 @@ rule token = parse
   | "Str"       { STR }
   | "String"    { STR }
   | "unit"      { UNIT }
+  | "()"        { UNIT }
   | "Unit"      { TYUNIT }
   | "++"        { CONCAT }
   | ","         { COMMA }
