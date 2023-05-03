@@ -24,8 +24,13 @@ rule token = parse
   | "isnil"     { ISNIL }
   | "Str"       { STR }
   | "String"    { STR }
+  | "List"      { LIST }
+  | "list"      { LIST }
+  | "["         { LBRACKET }
+  | "]"         { RBRACKET }
   | "++"        { CONCAT }
   | ","         { COMMA }
+  | ";"         { SEMICOLON }
   | "{"         { LKEY }
   | "}"         { RKEY }
   | '('         { LPAREN }

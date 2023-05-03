@@ -18,16 +18,20 @@
 %token BOOL
 %token NAT
 %token STR
+%token LIST
 %token ISNIL
 
 %token COMMA
 %token LKEY
 %token RKEY
+%token LBRACKET
+%token RBRACKET
 %token LPAREN
 %token RPAREN
 %token DOT
 %token EQ
 %token COLON
+%token SEMICOLON
 %token ARROW
 %token CONCAT
 %token EOF
@@ -99,6 +103,8 @@ atomicTerm :
             0 -> TmZero
           | n -> TmSucc (f (n-1))
         in f $1 }
+  | LBRACKET list RBRACKET
+      { $2 }
 
 tuples:
     atomicTerm COMMA tuples
@@ -108,6 +114,14 @@ tuples:
     | 
         { TmTuple (TmNil, TmNil) }
 
+list:
+    atomicTerm SEMICOLON list
+        { TmCons ($1, $3) }
+    | atomicTerm
+        { TmCons ($1, TmNil) }
+    | 
+        { TmCons (TmNil, TmNil) }
+
 ty :
     atomicTy
       { $1 }
@@ -115,6 +129,8 @@ ty :
       { TyArr ($1, $3) }
   | LKEY tytuples RKEY
       { $2 }
+  | LIST LBRACKET ty RBRACKET
+      { TyList ($3)}
 
 tytuples:
     atomicTy COMMA tytuples
@@ -123,7 +139,6 @@ tytuples:
         { TyTuple ($1, TyNil) }
     | 
         { TyNil }
-
 
 atomicTy :
     LPAREN ty RPAREN  

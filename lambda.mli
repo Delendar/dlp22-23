@@ -6,6 +6,7 @@ type ty =
   | TyArr of ty * ty
   | TyTuple of ty * ty
   | TyNil
+  | TyList of ty
 ;;
 
 type term =
@@ -24,6 +25,10 @@ type term =
   | TmString of string
   | TmConcat of term * term
   | TmTuple of term * term
+  | TmCons of term * term
+  | TmHead of term
+  | TmTail of term
+  | TmIsNil of term
   | TmNil
 ;;
 

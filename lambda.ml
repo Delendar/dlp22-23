@@ -8,6 +8,7 @@ type ty =
   | TyArr of ty * ty
   | TyTuple of ty * ty
   | TyNil
+  | TyList of ty
 ;;
 
 type term =
@@ -26,8 +27,11 @@ type term =
   | TmString of string
   | TmConcat of term * term
   | TmTuple of term * term
+  | TmCons of term * term
+  | TmHead of term
+  | TmTail of term
+  | TmIsNil of term
   | TmNil
-  (*| TmIsNil of term*)
 ;;
 
 type command =
@@ -87,8 +91,11 @@ let rec string_of_ty ty = match ty with
       | TyTuple (x, y) -> string_of_ty x ^ ", " ^ (aux y)
       | _ -> "Invalid"
     in ("{" ^ (aux (TyTuple(ty1,ty2))) ^ "}")
-  |TyNil -> 
+  | TyNil -> 
       "Null"
+  | TyList t1 ->
+    string_of_ty t1 ^ " list"
+      
 ;;
 
 exception Type_error of string
@@ -160,12 +167,13 @@ let rec typeof ctx tm = match tm with
 
     (* T-Fix *)
   | TmFix t1 ->
-      let tyT1 = typeof ctx t1 in
-      (match tyT1 with
+      let tyT1 = typeof ctx t1 in(
+        match tyT1 with
         TyArr (tyT11, tyT12) ->
           if tyT11 = tyT12 then tyT12
           else raise (Type_error "result of body not compatible with domain")
-      | _ -> raise (Type_error "arrow type expected"))
+      | _ -> raise (Type_error "arrow type expected")
+      )
 
     (* T-String *)
   | TmString s ->
@@ -175,10 +183,10 @@ let rec typeof ctx tm = match tm with
   | TmConcat (t1, t2) ->
       let tyt1 = typeof ctx t1 in
       let tyt2 = typeof ctx t2 in
-      if tyt1 = TyString then
-        if tyt2 = TyString then TyString
-        else raise (Type_error "second argument is not an string")
-      else raise (Type_error "first argument is not an string")
+        if tyt1 = TyString then
+          if tyt2 = TyString then TyString
+          else raise (Type_error "second argument is not an string")
+        else raise (Type_error "first argument is not an string")
 
     (* T-Tuple*)
   | TmTuple (t1, t2) ->
@@ -188,12 +196,42 @@ let rec typeof ctx tm = match tm with
   | TmNil ->
       TyNil
 
-    (*(*T-IsNil*)
-    | TmIsNil t1 ->
-      let t2 = typeof ctx t1 in (
-        match t2 with
-          T
-      )*)
+    (*T-Cons*)
+  | TmCons (t1, t2) ->
+    let tyt1 = typeof ctx t1 in(
+    let tyt2 = typeof ctx t2 in
+    match tyt2 with
+      TyList(aux) ->
+        if tyt1 = aux then TyList(tyt1)
+        else raise (Type_error "not same type (Cons)")
+      | TyNil ->
+        TyList(tyt1)
+      | _ -> raise (Type_error "not same type (Cons)")
+    )
+
+    (*T-IsNil*)
+  | TmIsNil t1 ->
+    let ty1 = typeof ctx t1 in (
+      match ty1 with
+        TyList _ -> TyBool
+        | _ -> raise (Type_error "argument not a list (IsNil)")
+    )
+
+    (*T-Head*)
+  | TmHead t1 ->
+    let ty1 = typeof ctx t1 in (
+      match ty1 with
+        TyList ty2 -> ty2
+        | _ -> raise (Type_error "argument not a list (Head)")
+    )
+
+    (*T-Tail*)
+  | TmTail t1 ->
+    let ty1 = typeof ctx t1 in (
+      match ty1 with
+        TyList ty2 -> TyList ty2
+        | _ -> raise (Type_error "argument not a list (Tail)")
+    )
 ;;
 
 
@@ -243,6 +281,19 @@ let rec string_of_term = function
       in ("{" ^ (aux(TmTuple(t1,t2))) ^ "}") 
   | TmNil ->
       ""
+  | TmCons (l1, l2)->
+    let rec aux l1 = match l1 with
+    TmCons(TmNil, TmNil) -> ""
+    |TmCons(x, TmNil) -> string_of_term x
+    |TmCons(x, y) -> string_of_term x ^ "; " ^ (aux y)
+    | _ -> "Invalid"
+    in ("[" ^ (aux (TmCons(l1, l2))) ^ "] list")   
+  | TmIsNil l->
+      "isnil (" ^string_of_term l ^ " )"      
+  | TmHead h->
+      "head (" ^string_of_term h ^ " )"      
+  | TmTail t->
+      "tail (" ^string_of_term t ^ " )"      
 
 ;;
 
@@ -289,6 +340,14 @@ let rec free_vars tm = match tm with
       lunion (free_vars t1) (free_vars t2)
   | TmNil -> 
       []
+  | TmIsNil l-> 
+      free_vars l
+  | TmCons (l1, l2)-> 
+      lunion (free_vars l1) (free_vars l2)
+  | TmHead h-> 
+      free_vars h      
+  | TmTail t-> 
+      free_vars t
 ;;
 
 let rec fresh_name x l =
@@ -338,6 +397,14 @@ let rec subst x s tm = match tm with
       TmTuple (subst x s t1, subst x s t2)
   | TmNil ->
       TmNil
+  | TmIsNil l-> 
+      TmIsNil (subst x s l)
+  | TmCons (l1, l2)-> 
+      TmCons (subst x s l1, subst x s l2)
+  | TmHead h-> 
+      TmHead (subst x s h)    
+  | TmTail t-> 
+      TmTail (subst x s t)
 ;;
 
 let apply_ctx ctx tm =
@@ -356,6 +423,7 @@ let rec isval tm = match tm with
   | TmAbs _ -> true
   | TmString s -> true  
   | TmTuple _ -> true
+  | TmCons _ -> true
   | t when isnumericval t -> true
   | _ -> false
 ;;
@@ -461,21 +529,50 @@ let rec eval1 ctx tm = match tm with
 
     (* E-Tuple1*)
   | TmTuple (t1, t2) ->
+    let t1' = eval1 ctx t1 in
+      TmTuple(t1', t2)
+
+    (* E-Cons2*)
+  | TmCons (t1, t2) when isval t1->
+      let t2' = eval1 ctx t2 in
+        TmCons (t1, t2')
+
+   (* E-Cons1*)
+  | TmCons (t1, t2) ->
       let t1' = eval1 ctx t1 in
-        TmTuple(t1', t2)
-
-  (*   (* E-IsNilNil*)
-  | TmIsNil (TmCons(TmNil,TmNil)) ->
-        TmTrue
-
+        TmCons (t1', t2)
+         
    (* E-IsNilNil*)
+  | TmIsNil (TmCons(TmNil,TmNil)) ->
+      TmTrue
+
+   (* E-IsNilCons*)
   | TmIsNil t1 when isval t1 ->
       TmFalse
       
     (* E-IsNil*)
   | TmIsNil t1 ->
       let t1' = eval1 ctx t1 in
-        TmIsNil t1' *)     
+        TmIsNil t1'
+        
+    (* E-HeadCons*)
+  | TmHead (TmCons(v1, v2)) ->
+        v1        
+        
+   (* E-Head*)
+  | TmHead h1 ->
+      let h1' = eval1 ctx h1 in
+        TmHead h1'
+
+   (* E-TailCons*)
+  | TmTail (TmCons(v1, v2)) ->
+      v2
+      
+    (* E-Tail*)
+  | TmTail t1 ->
+      let t1' = eval1 ctx t1 in
+        TmTail t1'
+               
 
   | TmVar s ->
       getvbinding ctx s
