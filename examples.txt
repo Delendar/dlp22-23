@@ -18,7 +18,7 @@ let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y
 let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in let prodaux = lambda f. (lambda n. (lambda m. if (iszero m) then 0 else sum n (f n (pred m)))) in let prod = fix prodaux in prod 12 5
 
 
-- Apartado 2.1 -----------------------------------------------------------------------------------------------------
+-- 2.1 -----------------------------------------------------------------------------------------------------
 
 letrec sum : Nat -> Nat -> Nat =
     lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in 
@@ -44,4 +44,26 @@ in letrec fib : Nat -> Nat =
     lambda n : Nat. if iszero n then 0 else if iszero (pred n) then 1 else sum (fib (pred n)) (fib (pred (pred n)))
 in fib 5;;
 
---------------------------------------------------------------------------------------------------------------------
+--/2.1/------------------------------------------------------------------------------------------------------------------
+
+--2.4--------
+{1,2};;
+{true,10};;
+{{true,false},{2},3};;
+
+{{true,false},{2},3}.0.1;;
+{{true,false},{2},3}.1;;
+{{true,false},{2},3}.2;;
+{{true,false},{2},3}.3;;
+--/2.4/------
+
+
+
+--2.8--------
+unit;;
+();;
+unit;unit;;
+();();;
+();1;;
+unit;{1,2};;
+--/2.8/-------

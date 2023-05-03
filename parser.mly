@@ -20,8 +20,12 @@
 %token STR
 %token LIST
 %token ISNIL
+%token UNIT
+%token TYUNIT
 
 %token COMMA
+%token LBRACKET
+%token RBRACKET
 %token LKEY
 %token RKEY
 %token LBRACKET
@@ -64,29 +68,33 @@ term :
       { TmLetIn ($2, TmFix (TmAbs ($2, $4, $6)), $8) }
 
 appTerm :
-    atomicTerm
+    pathTerm
       { $1 }
-  | SUCC atomicTerm
+  | SUCC pathTerm
       { TmSucc $2 }
-  | PRED atomicTerm
+  | PRED pathTerm
       { TmPred $2 }
-  | ISZERO atomicTerm
+  | ISZERO pathTerm
       { TmIsZero $2 }
-  | LPAREN CONCAT RPAREN atomicTerm atomicTerm
+  | LPAREN CONCAT RPAREN pathTerm pathTerm
       { TmConcat ($4, $5) }
-  | atomicTerm CONCAT atomicTerm
+  | pathTerm CONCAT pathTerm
       { TmConcat ($1, $3) }
-  | appTerm atomicTerm
+  | appTerm pathTerm
       { TmApp ($1, $2) }
 
-/*para las proyecciones, cambiar los atomic por path arriba*/
-/*pathTerm :
-    atomicTerm*/
-
-
+pathTerm :
+    atomicTerm
+        { $1 }
+  | atomicTerm DOT atomicTerm
+        { TmProj ($1, $3) }
+  | atomicTerm SEMICOLON atomicTerm
+        { TmApp (TmAbs ("x", TyUnit, $3), $1) }
 
 atomicTerm :
     LPAREN term RPAREN
+      { $2 }
+  | LBRACKET records RBRACKET
       { $2 }
   | LKEY tuples RKEY
       { $2 }
@@ -105,6 +113,14 @@ atomicTerm :
         in f $1 }
   | LBRACKET list RBRACKET
       { $2 }
+  | UNIT
+      { TmUnit }
+
+records:
+    STRINGV EQ atomicTerm COMMA records
+      { TmRecord ( ($1, $3) , $5) }
+  | STRINGV EQ atomicTerm
+      { TmRecord ( ($1, $3) , TmNil)}
 
 tuples:
     atomicTerm COMMA tuples
@@ -149,4 +165,24 @@ atomicTy :
       { TyNat }
   | STR
       { TyString }
+  | LKEY tyTuples RKEY  
+      { $2 }
+  | LKEY tyRecord RKEY  
+      { $2 }
+  | TYUNIT
+      { TyUnit }
 
+
+tyTuples:
+    atomicTy COMMA tyTuples
+        { TyTuple ($1, $3) }
+    | atomicTy
+        { TyTuple ($1, TyNil) }
+    | 
+        { TyNil }
+
+tyRecord:
+    STRINGV COLON atomicTy COMMA tyRecord
+      { TyRecord (($1,$3), $5) }
+  | STRINGV COLON atomicTy
+      { TyRecord (($1,$3), TyNil) }

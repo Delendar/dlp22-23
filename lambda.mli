@@ -4,9 +4,11 @@ type ty =
   | TyNat
   | TyString
   | TyArr of ty * ty
+  | TyRecord of (string * ty) * ty
   | TyTuple of ty * ty
   | TyNil
   | TyList of ty
+  | TyUnit
 ;;
 
 type term =
@@ -22,6 +24,7 @@ type term =
   | TmApp of term * term
   | TmLetIn of string * term * term
   | TmFix of term
+  | TmRecord of (string * term) * term
   | TmString of string
   | TmConcat of term * term
   | TmTuple of term * term
@@ -29,7 +32,9 @@ type term =
   | TmHead of term
   | TmTail of term
   | TmIsNil of term
+  | TmProj of term * term
   | TmNil
+  | TmUnit
 ;;
 
 type command =

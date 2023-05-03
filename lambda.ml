@@ -6,9 +6,11 @@ type ty =
   | TyNat
   | TyString
   | TyArr of ty * ty
+  | TyRecord of (string * ty) * ty
   | TyTuple of ty * ty
   | TyNil
   | TyList of ty
+  | TyUnit
 ;;
 
 type term =
@@ -24,6 +26,7 @@ type term =
   | TmApp of term * term
   | TmLetIn of string * term * term
   | TmFix of term
+  | TmRecord of (string * term) * term
   | TmString of string
   | TmConcat of term * term
   | TmTuple of term * term
@@ -31,7 +34,10 @@ type term =
   | TmHead of term
   | TmTail of term
   | TmIsNil of term
+  | TmProj of term * term
   | TmNil
+  | TmUnit
+  (*| TmIsNil of term*)
 ;;
 
 type command =
@@ -85,6 +91,14 @@ let rec string_of_ty ty = match ty with
       "String"      
   | TyArr (ty1, ty2) ->
       "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
+  | TyRecord ((tag, ty1), ty2) ->
+    let rec recordTyping record = match record with
+      | TyRecord ((tag, ty), TyNil) -> 
+          tag ^ ":" ^ string_of_ty ty
+      | TyRecord ((tag, ty), record) -> 
+          tag ^ ":" ^ string_of_ty ty ^ ", " ^ (recordTyping record)
+      | _ -> "Invalid record constructor."
+    in ("{" ^ recordTyping (TyRecord((tag, ty1), ty2)) ^ "}")
   | TyTuple(ty1, ty2) ->
     let rec aux t = match t with
       TyTuple (x, TyNil) -> string_of_ty x
@@ -96,6 +110,8 @@ let rec string_of_ty ty = match ty with
   | TyList t1 ->
     string_of_ty t1 ^ " list"
       
+  | TyUnit ->
+      "Unit"
 ;;
 
 exception Type_error of string
@@ -175,6 +191,51 @@ let rec typeof ctx tm = match tm with
       | _ -> raise (Type_error "arrow type expected")
       )
 
+  | TmRecord ((tag, t1), t2) ->
+      let rec recordTypeof tags = function
+        | TmRecord ((tag, element), TmNil) -> 
+            if (List.mem tag tags) then raise (Invalid_argument "Record - Unique key duplicated in record")
+            else TyRecord ((tag, typeof ctx element), TyNil)
+        | TmRecord ((tag, element), record) ->
+            if (List.mem tag tags) then raise (Invalid_argument "Record - Unique key duplicated in record")
+            else TyRecord ((tag, typeof ctx element), (recordTypeof (tag::tags) record))
+        | _ -> raise (Type_error "invalid record syntax")
+      in recordTypeof [] (TmRecord ((tag, t1), t2))
+
+  | TmProj (t1, TmVar var) ->
+      let projTy = typeof ctx t1 in
+      (match projTy with
+        TyRecord (term1,term2) ->
+          let rec recProjTypeOf = function
+            | TyRecord ((tag, elem), TyNil) -> 
+                if tag = var then elem else TyNil
+            | TyRecord ((tag, elem), record) ->
+                if tag = var then elem else recProjTypeOf record
+            | _ -> 
+                TyNil
+          in recProjTypeOf (TyRecord (term1,term2))
+        | _ -> raise (Type_error "head argument of projection not of type record"))
+
+  | TmProj (t1, t2) ->
+        let ty1 = typeof ctx t1 in
+        let ty2 = typeof ctx t2 in
+        (match ty1, ty2 with
+          | TyTuple (term1, term2), TyNat ->
+              let rec tupProjTypeOf ty term = 
+                match ty, term with
+                  | TyTuple (elem, _), TmZero -> 
+                      elem
+                  | TyTuple (elem1, elem2), TmSucc(num) -> 
+                      tupProjTypeOf elem2 num
+                  | _ -> TyNil
+              in tupProjTypeOf (TyTuple(term1, term2)) t2
+          | TyRecord (term1, term2), _ -> 
+              raise (Type_error "second argument of projection not a tag")
+          | _, TyNat -> 
+              raise (Type_error "head argument of projection not of type tuple")
+          | _ -> 
+              raise (Type_error "second argument of projection not of type Nat")
+        )
     (* T-String *)
   | TmString s ->
       TyString
@@ -195,6 +256,9 @@ let rec typeof ctx tm = match tm with
     (*T-Nil*)
   | TmNil ->
       TyNil
+  
+  | TmUnit ->
+      TyUnit
 
     (*T-Cons*)
   | TmCons (t1, t2) ->
@@ -268,6 +332,16 @@ let rec string_of_term = function
       "let " ^ s ^ " = " ^ string_of_term t1 ^ " in " ^ string_of_term t2
   | TmFix t ->
       "(fix " ^ string_of_term t ^ " )"
+  | TmRecord ((tag, t1), t2) ->
+      let rec recordSoF record = match record with
+        | TmTuple (TmNil, TmNil) -> "{}"
+        | TmRecord ((tag, element), TmNil) -> 
+            tag ^ "=" ^ string_of_term element
+        | TmRecord ((tag, element), record) -> 
+            tag ^ "=" ^ string_of_term element ^ ", " ^ (recordSoF record)
+        | element ->
+            string_of_term element
+      in ("{" ^ (recordSoF (TmRecord((tag, t1), t2))) ^ "}")
   | TmString s ->
       "\"" ^ s ^ "\""
   | TmConcat (t1, t2) ->
@@ -279,6 +353,8 @@ let rec string_of_term = function
         | TmTuple (x, y) -> string_of_term x ^ ", " ^ (aux y)
         | x -> string_of_term x
       in ("{" ^ (aux(TmTuple(t1,t2))) ^ "}") 
+  | TmProj (t1, t2) ->
+    string_of_term t1 ^ "." ^ string_of_term t2
   | TmNil ->
       ""
   | TmCons (l1, l2)->
@@ -294,6 +370,8 @@ let rec string_of_term = function
       "head (" ^string_of_term h ^ " )"      
   | TmTail t->
       "tail (" ^string_of_term t ^ " )"      
+  | TmUnit ->
+      "unit"
 
 ;;
 
@@ -332,11 +410,15 @@ let rec free_vars tm = match tm with
       lunion (ldif (free_vars t2) [s]) (free_vars t1)
   | TmFix t -> 
       free_vars t
+  | TmRecord ((tag, t1), t2) ->
+      ldif (lunion (free_vars t1) (free_vars t2)) [tag]
   | TmString s -> 
       []
   | TmConcat (t1, t2) ->
       lunion (free_vars t1) (free_vars t2)
   | TmTuple (t1, t2) ->
+      lunion (free_vars t1) (free_vars t2)
+  | TmProj (t1, t2) ->
       lunion (free_vars t1) (free_vars t2)
   | TmNil -> 
       []
@@ -348,6 +430,8 @@ let rec free_vars tm = match tm with
       free_vars h      
   | TmTail t-> 
       free_vars t
+  | TmUnit ->
+      []
 ;;
 
 let rec fresh_name x l =
@@ -389,12 +473,16 @@ let rec subst x s tm = match tm with
                 TmLetIn (z, subst x s t1, subst x s (subst y (TmVar z) t2))
   | TmFix t ->
       TmFix (subst x s t)
+  | TmRecord ((tag, t1), t2) ->
+      TmRecord ((tag, subst x s t1), subst x s t2)
   | TmString s ->
       TmString s    
   | TmConcat (t1, t2) ->
       TmConcat (subst x s t1, subst x s t2)
   | TmTuple (t1, t2) ->
       TmTuple (subst x s t1, subst x s t2)
+  | TmProj (t1, t2) ->
+      TmProj (subst x s t1, subst x s t2)
   | TmNil ->
       TmNil
   | TmIsNil l-> 
@@ -405,6 +493,8 @@ let rec subst x s tm = match tm with
       TmHead (subst x s h)    
   | TmTail t-> 
       TmTail (subst x s t)
+  | TmUnit ->
+      TmUnit
 ;;
 
 let apply_ctx ctx tm =
@@ -421,10 +511,12 @@ let rec isval tm = match tm with
     TmTrue  -> true
   | TmFalse -> true
   | TmAbs _ -> true
+  | TmRecord _ -> true
   | TmString s -> true  
   | TmTuple _ -> true
   | TmCons _ -> true
   | t when isnumericval t -> true
+  | TmUnit -> true
   | _ -> false
 ;;
 
@@ -508,6 +600,12 @@ let rec eval1 ctx tm = match tm with
       let t1' = eval1 ctx t1 in
       TmFix t1'
 
+  | TmRecord ((tag, t1), t2) when isval t1 ->
+      let t2' = eval1 ctx t2 in TmRecord ((tag, t1), t2')
+
+  | TmRecord((tag,t1), t2) ->
+      let t1' = eval1 ctx t1 in
+      TmRecord((tag, t1'), t2)
     (* E-ConcatV *)
   | TmConcat (TmString s1, TmString s2) ->
       TmString (s1 ^ s2)
@@ -541,10 +639,38 @@ let rec eval1 ctx tm = match tm with
   | TmCons (t1, t2) ->
       let t1' = eval1 ctx t1 in
         TmCons (t1', t2)
-         
-   (* E-IsNilNil*)
+
+    (* E-Proj2*)
+  | TmProj (TmTuple (t11, t12), TmZero) ->
+      t11
+
+    (* E-ProjErr*)
+  | TmProj (TmTuple (t11, TmNil), t2) ->
+      raise (Invalid_argument "index out of bounds")
+
+    (* E-Proj1*)
+  | TmProj (TmTuple (t11, t12), t2) ->
+      let t2' = eval1 ctx (TmPred t2) in
+      TmProj(t12, t2')
+
+    (* E-RecProj2*)
+  | TmProj (TmRecord ((tag1,t1), TmNil), (TmVar projTag)) ->
+      if tag1 = projTag then t1
+      else raise (Invalid_argument "key not found")
+
+    (* E-RecProj1*)
+  | TmProj (TmRecord ((tag1,t1),t2), (TmVar projTag)) ->
+      if tag1 = projTag then t1
+      else TmProj (t2,(TmVar projTag))
+    
+    (* E-Proj*)
+  | TmProj (t1, t2) ->
+      let t1' = eval1 ctx t1 in
+      TmProj (t1', t2)
+
+    (* E-IsNilNil*)
   | TmIsNil (TmCons(TmNil,TmNil)) ->
-      TmTrue
+        TmTrue
 
    (* E-IsNilCons*)
   | TmIsNil t1 when isval t1 ->
