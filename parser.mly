@@ -86,7 +86,7 @@ appTerm :
 pathTerm :
     atomicTerm
         { $1 }
-  | atomicTerm DOT atomicTerm
+  | pathTerm DOT atomicTerm
         { TmProj ($1, $3) }
   | atomicTerm SEMICOLON atomicTerm
         { TmApp (TmAbs ("x", TyUnit, $3), $1) }

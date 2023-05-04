@@ -92,19 +92,21 @@ let rec string_of_ty ty = match ty with
   | TyArr (ty1, ty2) ->
       "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
   | TyRecord ((tag, ty1), ty2) ->
-    let rec recordTyping record = match record with
+    let rec recordSoT record = match record with
       | TyRecord ((tag, ty), TyNil) -> 
           tag ^ ":" ^ string_of_ty ty
       | TyRecord ((tag, ty), record) -> 
-          tag ^ ":" ^ string_of_ty ty ^ ", " ^ (recordTyping record)
+          tag ^ ":" ^ string_of_ty ty ^ ", " ^ (recordSoT record)
       | _ -> "Invalid record constructor."
-    in ("{" ^ recordTyping (TyRecord((tag, ty1), ty2)) ^ "}")
+    in ("{" ^ recordSoT (TyRecord((tag, ty1), ty2)) ^ "}")
   | TyTuple(ty1, ty2) ->
-    let rec aux t = match t with
-      TyTuple (x, TyNil) -> string_of_ty x
-      | TyTuple (x, y) -> string_of_ty x ^ ", " ^ (aux y)
+    let rec tupleSoT t = match t with
+      | TyTuple (elem, TyNil) -> 
+          string_of_ty elem
+      | TyTuple (elem1, elem2) -> 
+          string_of_ty elem1 ^ ", " ^ (tupleSoT elem2)
       | _ -> "Invalid"
-    in ("{" ^ (aux (TyTuple(ty1,ty2))) ^ "}")
+    in ("{" ^ (tupleSoT (TyTuple(ty1,ty2))) ^ "}")
   | TyNil -> 
       "Null"
   | TyList t1 ->
@@ -223,7 +225,7 @@ let rec typeof ctx tm = match tm with
           | TyTuple (term1, term2), TyNat ->
               let rec tupProjTypeOf ty term = 
                 match ty, term with
-                  | TyTuple (elem, _), TmZero -> 
+                  | TyTuple (elem, _), (TmSucc TmZero) -> 
                       elem
                   | TyTuple (elem1, elem2), TmSucc(num) -> 
                       tupProjTypeOf elem2 num
@@ -236,6 +238,7 @@ let rec typeof ctx tm = match tm with
           | _ -> 
               raise (Type_error "second argument of projection not of type Nat")
         )
+      
     (* T-String *)
   | TmString s ->
       TyString
@@ -347,12 +350,15 @@ let rec string_of_term = function
   | TmConcat (t1, t2) ->
       "(++) " ^ string_of_term t1 ^ " " ^ string_of_term t2
   | TmTuple (t1,t2) ->
-      let rec aux t = match t with
-          TmTuple (TmNil, TmNil) -> "{}"
-        | TmTuple (x, TmNil) -> string_of_term x
-        | TmTuple (x, y) -> string_of_term x ^ ", " ^ (aux y)
-        | x -> string_of_term x
-      in ("{" ^ (aux(TmTuple(t1,t2))) ^ "}") 
+      let rec tupleSoT t = match t with
+        | TmTuple (TmNil, TmNil) -> 
+            "{}"
+        | TmTuple (elem, TmNil) -> 
+            string_of_term elem
+        | TmTuple (elem1, elem2) -> 
+            string_of_term elem1 ^ ", " ^ (tupleSoT elem2)
+        | elem -> string_of_term elem
+      in ("{" ^ (tupleSoT(TmTuple(t1,t2))) ^ "}") 
   | TmProj (t1, t2) ->
     string_of_term t1 ^ "." ^ string_of_term t2
   | TmNil ->
@@ -641,7 +647,7 @@ let rec eval1 ctx tm = match tm with
         TmCons (t1', t2)
 
     (* E-Proj2*)
-  | TmProj (TmTuple (t11, t12), TmZero) ->
+  | TmProj (TmTuple (t11, t12), (TmSucc TmZero)) ->
       t11
 
     (* E-ProjErr*)
