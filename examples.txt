@@ -14,22 +14,31 @@ let id = Lx.x in id 3
 let id_bool = L x:Bool. x in id_bool true
 let id_nat = L x:Nat. x in id_nat 5
 let x = 5 in let id_nat = L x:Nat. x in id_nat x
-let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in sum 21 34
-let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in let prodaux = lambda f. (lambda n. (lambda m. if (iszero m) then 0 else sum n (f n (pred m)))) in let prod = fix prodaux in prod 12 5
+let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in 
+    let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in 
+    let sum = fix sumaux in 
+    sum 21 34;;
+let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in
+    let sumaux = lambda f. (lambda n: Nat. (lambda m: Nat. if (iszero n) then m else succ (f (pred n) m))) in 
+    let sum = fix sumaux in let prodaux = lambda f. (lambda n. (lambda m. if (iszero m) then 0 else sum n (f n (pred m)))) in 
+    let prod = fix prodaux in 
+    prod 12 5;;
 
 
--- 2.1 -----------------------------------------------------------------------------------------------------
-
+--2.1-----------------------------------------------------------------------------------------------------
+##Sum##
 letrec sum : Nat -> Nat -> Nat =
     lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in 
 sum 21 34 ;;
 
+##Product##
 letrec sum : Nat -> Nat -> Nat =
     lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) 
 in letrec prod : Nat -> Nat -> Nat =
     lambda m : Nat. lambda n : Nat. if iszero m then 0 else sum n ( prod (pred m) n)
-in prod 5 3;;
+in Lx: Nat. Ly: Nat. prod x y;;
 
+##Factorial##
 letrec sum : Nat -> Nat -> Nat =
     lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) 
 in letrec prod : Nat -> Nat -> Nat =
@@ -38,6 +47,7 @@ in letrec fact : Nat -> Nat =
     lambda n : Nat. if iszero n then 1 else prod n (fact (pred n))
 in fact 4;;
 
+##Fibonacci
 letrec sum : Nat -> Nat -> Nat =
     lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) 
 in letrec fib : Nat -> Nat =
@@ -46,7 +56,36 @@ in fib 5;;
 
 --/2.1/------------------------------------------------------------------------------------------------------------------
 
---2.3--------
+--2.2------------------------------------------------------------------------------------------------------------------
+cinco = 5;;
+
+sum = letrec sum : Nat -> Nat -> Nat =
+    lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in 
+Lx: Nat. Ly: Nat. sum x y;;
+
+prod = letrec prod : Nat -> Nat -> Nat =
+    lambda m : Nat. lambda n : Nat. if iszero m then 0 else sum n ( prod (pred m) n)
+in Lx: Nat. Ly: Nat. prod x y;;
+
+fact = letrec fact : Nat -> Nat =
+    lambda n : Nat. if iszero n then 1 else prod n (fact (pred n))
+in Lx: Nat. fact x;;
+
+fib = letrec fib : Nat -> Nat =
+    lambda n : Nat. if iszero n then 0 else if iszero (pred n) then 1 else sum (fib (pred n)) (fib (pred (pred n)))
+in Lx: Nat. fib x;;
+
+sum cinco cinco;;
+prod cinco cinco;;
+fact cinco;;
+fib cinco;;
+
+s1 = "hola";;
+n1 = 1;;
+btrue = true;;
+--/2.2/------------------------------------------------------------------------------------------------------------------
+
+--2.3--------------------------
 string1= "Hola "
 string2= "Don Pepito"
 string3= (++) string2 string1
@@ -55,19 +94,32 @@ string1
 string2
 string3
 string4
---/2.3/--------
+--/2.3/------------------------
 
-
---2.4--------
-{1,2};;
+--2.4------------------------
 {true,10};;
 {{true,false},{2},3};;
 
-{{true,false},{2},3}.0.1;;
-{{true,false},{2},3}.1;;
+{{true,false},{2},3}.1.2;;
 {{true,false},{2},3}.2;;
 {{true,false},{2},3}.3;;
---/2.4/------
+{{true,false},{2},3}.4;;
+--/2.4/----------------------
+
+--2.5-------------------
+registro=[num=1,
+bool=true,
+reg=[
+    tupla={
+        [tupla2={false,false,true},
+        num2=2],
+        2
+        }
+    ]
+];;
+registro.reg.tupla.1.tupla2.3;;
+[tupla={01,{11,{21,{31},{32,33,[subtupla={41,{51}}]},22}}}].tupla.2.2.3.3.subtupla.2.1;;
+--/2.5/-----------------
 
 --2.6--------
 letrec sum : Nat -> Nat -> Nat =

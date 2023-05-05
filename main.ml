@@ -37,6 +37,9 @@ let top_level_loop () =
      | Type_error e ->
          print_endline ("type error: " ^ e);
          loop ctx
+     | Invalid_argument e ->
+         print_endline ("argument error: " ^ e);
+         loop ctx
      | End_of_file ->
          print_endline "...bye!!!"
   in
