@@ -86,14 +86,14 @@ btrue = true;;
 --/2.2/------------------------------------------------------------------------------------------------------------------
 
 --2.3--------------------------
-string1= "Hola "
-string2= "Don Pepito"
-string3= (++) string2 string1
-string4= string1++string2
-string1
-string2
-string3
-string4
+string1= "Hola ";;
+string2= "Don Pepito";;
+string3= (++) string2 string1;;
+string4= string1++string2;;
+string1;;
+string2;;
+string3;;
+string4;;
 --/2.3/------------------------
 
 --2.4------------------------
