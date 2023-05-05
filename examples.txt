@@ -107,18 +107,13 @@ string4
 --/2.4/----------------------
 
 --2.5-------------------
-registro=[num=1,
-bool=true,
-reg=[
-    tupla={
-        [tupla2={false,false,true},
-        num2=2],
-        2
-        }
-    ]
+record=[num=1,bool=true,rec=[
+    tuple={[
+        tuple2={false,false,true},
+        num2=2],2}]
 ];;
-registro.reg.tupla.1.tupla2.3;;
-[tupla={01,{11,{21,{31},{32,33,[subtupla={41,{51}}]},22}}}].tupla.2.2.3.3.subtupla.2.1;;
+record.rec.tuple.1.tuple2.3;;
+[tuple={01,{11,{21,{31},{32,33,[subtuple={41,{51}}]},22}}}].tuple.2.2.3.3.subtuple.2.1;;
 --/2.5/-----------------
 
 --2.6--------
