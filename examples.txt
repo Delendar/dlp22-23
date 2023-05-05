@@ -46,6 +46,18 @@ in fib 5;;
 
 --/2.1/------------------------------------------------------------------------------------------------------------------
 
+--2.3--------
+string1= "Hola "
+string2= "Don Pepito"
+string3= (++) string2 string1
+string4= string1++string2
+string1
+string2
+string3
+string4
+--/2.3/--------
+
+
 --2.4--------
 {1,2};;
 {true,10};;
@@ -57,7 +69,22 @@ in fib 5;;
 {{true,false},{2},3}.3;;
 --/2.4/------
 
+--2.6--------
+letrec sum : Nat -> Nat -> Nat =
+    lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in
+    letrec length : List -> Nat = 
+        lambda l : List. if isnil l then 0 else sum 1 (length (tail l)) in length 
 
+let length =
+  letrec length : List -> Nat =
+    lambda l : List. if isnil l then 0 else sum 1 (length (tail l))
+  in length;; 
+
+letrec append: List -> List -> List =
+    lambda l1: List. lambda l2: List. if isnil l1 then l2 else [(head l1)::(append (tail l1) l2)] in append
+
+letrec map: (Nat -> Nat) -> Nat list -> Nat list = lambda f : Nat -> Nat. lambda l : Nat list. if isnil l then l else [(f (head l))::(map f (tail l))] in map
+--/2.6/--------
 
 --2.8--------
 unit;;

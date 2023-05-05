@@ -37,7 +37,6 @@ type term =
   | TmProj of term * term
   | TmNil
   | TmUnit
-  (*| TmIsNil of term*)
 ;;
 
 type command =
@@ -109,7 +108,6 @@ let rec string_of_ty ty = match ty with
       "Null"
   | TyList t1 ->
     string_of_ty t1 ^ " list"
-      
   | TyUnit ->
       "Unit"
 ;;
@@ -265,7 +263,9 @@ let rec typeof ctx tm = match tm with
     let tyt1 = typeof ctx t1 in(
     let tyt2 = typeof ctx t2 in
     match tyt2 with
-      TyList(aux) ->
+      TyList(TyNil) ->
+        TyList(tyt1)
+      |TyList(aux) ->
         if tyt1 = aux then TyList(tyt1)
         else raise (Type_error "not same type (Cons)")
       | TyNil ->
@@ -363,7 +363,7 @@ let rec string_of_term = function
     |TmCons(x, TmNil) -> string_of_term x
     |TmCons(x, y) -> string_of_term x ^ "; " ^ (aux y)
     | _ -> "Invalid"
-    in ("[" ^ (aux (TmCons(l1, l2))) ^ "] list")   
+    in ("[" ^ (aux (TmCons(l1, l2))) ^ "]")   
   | TmIsNil l->
       "isnil (" ^string_of_term l ^ " )"      
   | TmHead h->
@@ -680,19 +680,27 @@ let rec eval1 ctx tm = match tm with
   | TmIsNil t1 ->
       let t1' = eval1 ctx t1 in
         TmIsNil t1'
-        
+
+    (* E-HeadNull*)
+  | TmHead (TmCons(TmNil, TmNil)) ->
+        raise (Invalid_argument "argument must not be empty (Head)")          
+
     (* E-HeadCons*)
   | TmHead (TmCons(v1, v2)) ->
-        v1        
+        v1              
         
    (* E-Head*)
   | TmHead h1 ->
       let h1' = eval1 ctx h1 in
         TmHead h1'
 
+    (* E-TailNull*)
+  | TmTail (TmCons(TmNil, TmNil)) ->
+        raise (Invalid_argument "argument must not be empty (Tail)")  
+
    (* E-TailCons*)
   | TmTail (TmCons(v1, v2)) ->
-      v2
+      v2    
       
     (* E-Tail*)
   | TmTail t1 ->

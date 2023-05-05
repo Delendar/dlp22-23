@@ -22,6 +22,8 @@ rule token = parse
   | "Bool"      { BOOL }
   | "Nat"       { NAT }
   | "isnil"     { ISNIL }
+  | "head"      { HEAD }
+  | "tail"      { TAIL }
   | "Str"       { STR }
   | "String"    { STR }
   | "List"      { LIST }

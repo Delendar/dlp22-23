@@ -20,6 +20,8 @@
 %token STR
 %token LIST
 %token ISNIL
+%token HEAD
+%token TAIL
 %token UNIT
 %token TYUNIT
 
@@ -80,6 +82,16 @@ appTerm :
       { TmConcat ($4, $5) }
   | pathTerm CONCAT pathTerm
       { TmConcat ($1, $3) }
+  | HEAD atomicTerm
+      {TmHead $2}
+  | TAIL atomicTerm
+      {TmTail $2}
+  | ISNIL atomicTerm
+      {TmIsNil $2}
+  | LPAREN COLON COLON RPAREN pathTerm pathTerm
+      { TmCons ($5, $6) }
+  | pathTerm COLON COLON pathTerm
+      { TmCons ($1, $4) }
   | appTerm pathTerm
       { TmApp ($1, $2) }
 
@@ -131,7 +143,7 @@ tuples:
         { TmTuple (TmNil, TmNil) }
 
 list:
-    atomicTerm SEMICOLON list
+    | atomicTerm SEMICOLON list
         { TmCons ($1, $3) }
     | atomicTerm
         { TmCons ($1, TmNil) }
