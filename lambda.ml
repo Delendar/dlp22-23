@@ -730,6 +730,6 @@ let execute ctx = function
   | Bind (s, tm) ->
       let tyTm = typeof ctx tm in
       let tm' = eval ctx tm in
-      print_endline (s ^ " : " ^ string_of_ty tyTm ^ " = " ^ string_of_term tm');
+      print_endline ("- : " ^ s ^ " : " ^ string_of_ty tyTm ^ " = " ^ string_of_term tm');
       addbinding ctx s tyTm tm'
   ;;
