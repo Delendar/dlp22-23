@@ -190,7 +190,7 @@ let rec typeof ctx tm = match tm with
           else raise (Type_error "result of body not compatible with domain")
       | _ -> raise (Type_error "arrow type expected")
       )
-
+    (* T-Rcd **)
   | TmRecord ((tag, t1), t2) ->
       let rec recordTypeof tags = function
         | TmRecord ((tag, element), TmNil) -> 
@@ -202,6 +202,7 @@ let rec typeof ctx tm = match tm with
         | _ -> raise (Type_error "invalid record syntax")
       in recordTypeof [] (TmRecord ((tag, t1), t2))
 
+    (* T-RcdProj *)
   | TmProj (t1, TmVar var) ->
       let projTy = typeof ctx t1 in
       (match projTy with
@@ -215,7 +216,7 @@ let rec typeof ctx tm = match tm with
                 TyNil
           in recProjTypeOf (TyRecord (term1,term2))
         | _ -> raise (Type_error "head argument of projection not of type record"))
-
+    (* T-Proj *)
   | TmProj (t1, t2) ->
         let ty1 = typeof ctx t1 in
         let ty2 = typeof ctx t2 in
@@ -250,14 +251,15 @@ let rec typeof ctx tm = match tm with
           else raise (Type_error "second argument is not an string")
         else raise (Type_error "first argument is not an string")
 
-    (* T-Tuple*)
+    (* T-Tuple *)
   | TmTuple (t1, t2) ->
       TyTuple (typeof ctx t1, typeof ctx t2)
   
-    (*T-Nil*)
+    (* T-Nil *)
   | TmNil ->
       TyNil
   
+    (* T-Unit *)
   | TmUnit ->
       TyUnit
 
@@ -606,12 +608,15 @@ let rec eval1 ctx tm = match tm with
       let t1' = eval1 ctx t1 in
       TmFix t1'
 
+    (* E-Rcd2 *)
   | TmRecord ((tag, t1), t2) when isval t1 ->
       let t2' = eval1 ctx t2 in TmRecord ((tag, t1), t2')
 
+    (* E-Rcd1 *)
   | TmRecord((tag,t1), t2) ->
       let t1' = eval1 ctx t1 in
       TmRecord((tag, t1'), t2)
+
     (* E-ConcatV *)
   | TmConcat (TmString s1, TmString s2) ->
       TmString (s1 ^ s2)
@@ -626,45 +631,45 @@ let rec eval1 ctx tm = match tm with
       let t1' = eval1 ctx t1 in
       TmConcat (t1', TmString s2)
 
-   (* E-Tuple2*)
+   (* E-Tuple2 *)
    | TmTuple (t1, t2) when isval t1 ->
     let t2' = eval1 ctx t2 in
       TmTuple(t1, t2')
 
-    (* E-Tuple1*)
+    (* E-Tuple1 *)
   | TmTuple (t1, t2) ->
     let t1' = eval1 ctx t1 in
       TmTuple(t1', t2)
 
-    (* E-Cons2*)
+    (* E-Cons2 *)
   | TmCons (t1, t2) when isval t1->
       let t2' = eval1 ctx t2 in
         TmCons (t1, t2')
 
-   (* E-Cons1*)
+   (* E-Cons1 *)
   | TmCons (t1, t2) ->
       let t1' = eval1 ctx t1 in
         TmCons (t1', t2)
 
-    (* E-Proj2*)
+    (* E-Proj2 *)
   | TmProj (TmTuple (t11, t12), (TmSucc TmZero)) ->
       t11
 
-    (* E-ProjErr*)
+    (* E-ProjErr *)
   | TmProj (TmTuple (t11, TmNil), t2) ->
       raise (Invalid_argument "index out of bounds")
 
-    (* E-Proj1*)
+    (* E-Proj1 *)
   | TmProj (TmTuple (t11, t12), t2) ->
       let t2' = eval1 ctx (TmPred t2) in
       TmProj(t12, t2')
 
-    (* E-RecProj2*)
+    (* E-RcdProj2 *)
   | TmProj (TmRecord ((tag1,t1), TmNil), (TmVar projTag)) ->
       if tag1 = projTag then t1
       else raise (Invalid_argument "key not found")
 
-    (* E-RecProj1*)
+    (* E-RcdProj1 *)
   | TmProj (TmRecord ((tag1,t1),t2), (TmVar projTag)) ->
       if tag1 = projTag then t1
       else TmProj (t2,(TmVar projTag))
